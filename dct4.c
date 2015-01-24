@@ -41,7 +41,7 @@ static dct_table_type dct_table_80[80];
 static dct_table_type dct_table_160[160];
 static dct_table_type dct_table_320[320];
 static dct_table_type dct_table_640[640];
-static dct_table_type *dct_tables[8] = { dct_table_5,
+static dct_table_type const *dct_tables[8] = { dct_table_5,
   dct_table_10,
   dct_table_20,
   dct_table_40,

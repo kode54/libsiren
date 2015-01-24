@@ -57,6 +57,14 @@ Siren7_NewEncoder (int sample_rate)
 
   memset (encoder->context, 0, sizeof (encoder->context));
 
+  memset (encoder->absolute_region_power_index, 0, sizeof(int) * 28);
+  memset (encoder->power_categories, 0, sizeof(int) * 28);
+  memset (encoder->category_balance, 0, sizeof(int) * 28);
+  memset (encoder->drp_num_bits, 0, sizeof(int) * 30);
+  memset (encoder->drp_code_bits, 0, sizeof(int) * 30);
+  memset (encoder->region_mlt_bit_counts, 0, sizeof(int) * 30);
+  memset (encoder->region_mlt_bits, 0, sizeof(int) * 112);
+
   siren_init ();
   return encoder;
 }
@@ -82,13 +90,6 @@ Siren7_EncodeFrame (SirenEncoder encoder, unsigned char *DataIn,
       scale_factor, number_of_regions, sample_rate_code, bits_per_frame;
   int sample_rate = encoder->sample_rate;
 
-  static int absolute_region_power_index[28] = { 0 };
-  static int power_categories[28] = { 0 };
-  static int category_balance[28] = { 0 };
-  static int drp_num_bits[30] = { 0 };
-  static int drp_code_bits[30] = { 0 };
-  static int region_mlt_bit_counts[28] = { 0 };
-  static int region_mlt_bits[112] = { 0 };
   int ChecksumTable[4] = { 0x7F80, 0x7878, 0x6666, 0x5555 };
   int i, j;
 
@@ -132,51 +133,51 @@ Siren7_EncodeFrame (SirenEncoder encoder, unsigned char *DataIn,
     return dwRes;
 
   envelope_bits =
-      compute_region_powers (number_of_regions, coefs, drp_num_bits,
-      drp_code_bits, absolute_region_power_index, esf_adjustment);
+      compute_region_powers (number_of_regions, coefs, encoder->drp_num_bits,
+      encoder->drp_code_bits, encoder->absolute_region_power_index, esf_adjustment);
 
   number_of_available_bits =
       bits_per_frame - rate_control_bits - envelope_bits - sample_rate_bits -
       checksum_bits;
 
   categorize_regions (number_of_regions, number_of_available_bits,
-      absolute_region_power_index, power_categories, category_balance);
+      encoder->absolute_region_power_index, encoder->power_categories, encoder->category_balance);
 
   for (region = 0; region < number_of_regions; region++) {
-    absolute_region_power_index[region] += 24;
-    region_mlt_bit_counts[region] = 0;
+    encoder->absolute_region_power_index[region] += 24;
+    encoder->region_mlt_bit_counts[region] = 0;
   }
 
   rate_control =
       quantize_mlt (number_of_regions, rate_control_possibilities,
-      number_of_available_bits, coefs, absolute_region_power_index,
-      power_categories, category_balance, region_mlt_bit_counts,
-      region_mlt_bits);
+      number_of_available_bits, coefs, encoder->absolute_region_power_index,
+      encoder->power_categories, encoder->category_balance, encoder->region_mlt_bit_counts,
+      encoder->region_mlt_bits);
 
   idx = 0;
   bits_left = 16 - sample_rate_bits;
   out_word = sample_rate_code << (16 - sample_rate_bits);
-  drp_num_bits[number_of_regions] = rate_control_bits;
-  drp_code_bits[number_of_regions] = rate_control;
+  encoder->drp_num_bits[number_of_regions] = rate_control_bits;
+  encoder->drp_code_bits[number_of_regions] = rate_control;
   for (region = 0; region <= number_of_regions; region++) {
-    i = drp_num_bits[region] - bits_left;
+    i = encoder->drp_num_bits[region] - bits_left;
     if (i < 0) {
-      out_word += drp_code_bits[region] << -i;
-      bits_left -= drp_num_bits[region];
+      out_word += encoder->drp_code_bits[region] << -i;
+      bits_left -= encoder->drp_num_bits[region];
     } else {
-      BufferOut[idx++] = out_word + (drp_code_bits[region] >> i);
-      bits_left += 16 - drp_num_bits[region];
-      out_word = drp_code_bits[region] << bits_left;
+      BufferOut[idx++] = out_word + (encoder->drp_code_bits[region] >> i);
+      bits_left += 16 - encoder->drp_num_bits[region];
+      out_word = encoder->drp_code_bits[region] << bits_left;
     }
   }
 
   for (region = 0; region < number_of_regions && (16 * idx) < bits_per_frame;
       region++) {
-    current_word_bits_left = region_bit_count = region_mlt_bit_counts[region];
+    current_word_bits_left = region_bit_count = encoder->region_mlt_bit_counts[region];
     if (current_word_bits_left > 32)
       current_word_bits_left = 32;
 
-    current_word = region_mlt_bits[region * 4];
+    current_word = encoder->region_mlt_bits[region * 4];
     i = 1;
     while (region_bit_count > 0 && (16 * idx) < bits_per_frame) {
       if (current_word_bits_left < bits_left) {
@@ -194,7 +195,7 @@ Siren7_EncodeFrame (SirenEncoder encoder, unsigned char *DataIn,
       }
       if (current_word_bits_left == 0) {
         region_bit_count -= 32;
-        current_word = region_mlt_bits[(region * 4) + i++];
+        current_word = encoder->region_mlt_bits[(region * 4) + i++];
         current_word_bits_left = region_bit_count;
         if (current_word_bits_left > 32)
           current_word_bits_left = 32;

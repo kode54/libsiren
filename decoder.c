@@ -59,6 +59,11 @@ Siren7_NewDecoder (int sample_rate)
   decoder->dw3 = 1;
   decoder->dw4 = 1;
 
+  memset (decoder->absolute_region_power_index, 0, sizeof(int) * 28);
+  memset (decoder->decoder_standard_deviation, 0, sizeof(float) * 28);
+  memset (decoder->power_categories, 0, sizeof(int));
+  memset (decoder->category_balance, 0, sizeof(int));
+
   siren_init ();
   return decoder;
 }
@@ -82,10 +87,6 @@ Siren7_DecodeFrame (SirenDecoder decoder, unsigned char *DataIn,
       scale_factor, number_of_regions, sample_rate_code, bits_per_frame;
   int decoded_sample_rate_code;
 
-  static int absolute_region_power_index[28] = { 0 };
-  static float decoder_standard_deviation[28] = { 0 };
-  static int power_categories[28] = { 0 };
-  static int category_balance[28] = { 0 };
   int ChecksumTable[4] = { 0x7F80, 0x7878, 0x6666, 0x5555 };
   int i, j;
 
@@ -106,6 +107,8 @@ Siren7_DecodeFrame (SirenDecoder decoder, unsigned char *DataIn,
   int temp1;
   int temp2;
 
+  bitstream bs = {0};
+
   for (i = 0; i < 20; i++)
 #ifdef __BIG_ENDIAN__
     In[i] = ((short *) DataIn)[i];
@@ -125,12 +128,12 @@ Siren7_DecodeFrame (SirenDecoder decoder, unsigned char *DataIn,
     return dwRes;
 
 
-  set_bitstream (In);
+  set_bitstream (&bs, In);
 
   decoded_sample_rate_code = 0;
   for (i = 0; i < sample_rate_bits; i++) {
     decoded_sample_rate_code <<= 1;
-    decoded_sample_rate_code |= next_bit ();
+    decoded_sample_rate_code |= next_bit (&bs);
   }
 
 
@@ -149,7 +152,7 @@ Siren7_DecodeFrame (SirenDecoder decoder, unsigned char *DataIn,
 
   for (i = 0; i < rate_control_bits; i++) {
     rate_control <<= 1;
-    rate_control |= next_bit ();
+    rate_control |= next_bit (&bs);
   }
 
   number_of_available_bits -= rate_control_bits;
@@ -169,7 +172,7 @@ Siren7_DecodeFrame (SirenDecoder decoder, unsigned char *DataIn,
   frame_error = 0;
   if (number_of_available_bits > 0) {
     for (i = 0; i < number_of_available_bits; i++) {
-      if (next_bit () == 0)
+      if (next_bit (&bs) == 0)
         frame_error = 1;
     }
   } else if (number_of_available_bits < 0

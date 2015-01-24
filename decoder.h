@@ -41,6 +41,10 @@ typedef struct stSirenDecoder {
 	int dw2;
 	int dw3;
 	int dw4;
+	int absolute_region_power_index[28];
+	float decoder_standard_deviation[28];
+	int power_categories[28];
+	int category_balance[28];
 } * SirenDecoder;
 
 

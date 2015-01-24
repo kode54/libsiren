@@ -29,7 +29,14 @@ extern int quantize_mlt(int number_of_regions, int rate_control_possibilities, i
 extern int decode_envelope(int number_of_regions, float *decoder_standard_deviation, int *absolute_region_power_index, int esf_adjustment);
 extern int decode_vector(SirenDecoder decoder, int number_of_regions, int number_of_available_bits, float *decoder_standard_deviation, int *power_categories, float *coefs, int scale_factor);
 
-extern void set_bitstream(int *stream);
-extern int next_bit(void);
+typedef struct bitstream
+{
+	short current_word;
+	int bit_idx;
+	int *bitstream_ptr;
+} bitstream;
+
+extern void set_bitstream(bitstream *, int *stream);
+extern int next_bit(bitstream *);
 
 #endif /* _SIREN7_HUFFMAN_H_ */

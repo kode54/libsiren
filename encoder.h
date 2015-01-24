@@ -36,6 +36,13 @@ typedef struct stSirenEncoder {
 	int sample_rate;
 	SirenWavHeader WavHeader;
 	float context[320];
+	int absolute_region_power_index[28];
+	int power_categories[28];
+	int category_balance[28];
+	int drp_num_bits[30];
+	int drp_code_bits[30];
+	int region_mlt_bit_counts[28];
+	int region_mlt_bits[112];
 } * SirenEncoder;
 
 /* sample_rate MUST be 16000 to be compatible with MSN Voice clips (I think) */

@@ -22,11 +22,7 @@
 
 #include "siren7.h"
 #include "huffman_consts.h"
-
-
-static short current_word = 0;
-static int bit_idx = 0;
-static int *bitstream_ptr = NULL;
+#include "huffman.h"
 
 int
 next_bit (void)

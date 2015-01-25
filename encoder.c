@@ -43,12 +43,12 @@ Siren7_NewEncoder (int sample_rate, int flag)
 
   encoder->WavHeader.fmt.fmt.Format = ME_TO_LE16 (0x028E);
   encoder->WavHeader.fmt.fmt.Channels = ME_TO_LE16 (1);
-  encoder->WavHeader.fmt.fmt.SampleRate = ME_TO_LE32 (16000);
-  encoder->WavHeader.fmt.fmt.ByteRate = ME_TO_LE32 (2000);
+  encoder->WavHeader.fmt.fmt.SampleRate = ME_TO_LE32 (sample_rate);
+  encoder->WavHeader.fmt.fmt.ByteRate = ME_TO_LE32 (sample_rate * 16 / 3);
   encoder->WavHeader.fmt.fmt.BlockAlign = ME_TO_LE16 (40);
   encoder->WavHeader.fmt.fmt.BitsPerSample = ME_TO_LE16 (0);
   encoder->WavHeader.fmt.ExtraSize = ME_TO_LE16 (2);
-  encoder->WavHeader.fmt.DctLength = ME_TO_LE16 (320);
+  encoder->WavHeader.fmt.DctLength = ME_TO_LE16 (flag == 1 ? 320 : 640);
 
   encoder->WavHeader.FactId = ME_TO_LE32 (FACT_ID);
   encoder->WavHeader.FactSize = ME_TO_LE32 (sizeof (int));

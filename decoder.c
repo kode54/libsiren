@@ -41,8 +41,8 @@ Siren7_NewDecoder (int sample_rate, int flag)
 
   decoder->WavHeader.fmt.Format = ME_TO_LE16 (0x01);
   decoder->WavHeader.fmt.Channels = ME_TO_LE16 (1);
-  decoder->WavHeader.fmt.SampleRate = ME_TO_LE32 (16000);
-  decoder->WavHeader.fmt.ByteRate = ME_TO_LE32 (32000);
+  decoder->WavHeader.fmt.SampleRate = ME_TO_LE32 (sample_rate);
+  decoder->WavHeader.fmt.ByteRate = ME_TO_LE32 (sample_rate * 2);
   decoder->WavHeader.fmt.BlockAlign = ME_TO_LE16 (2);
   decoder->WavHeader.fmt.BitsPerSample = ME_TO_LE16 (16);
 
@@ -107,8 +107,8 @@ Siren7_DecodeFrame (SirenDecoder decoder, unsigned char *DataIn,
   int frame_error = 0;
 
   int In[60];
-  float coefs[320];
-  float BufferOut[320];
+  float coefs[640];
+  float BufferOut[640];
   int sum;
   int checksum;
   int calculated_checksum;

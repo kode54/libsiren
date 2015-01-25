@@ -119,7 +119,7 @@ Siren7_DecodeFrame (SirenDecoder decoder, unsigned char *DataIn,
   bitstream bs = {0};
 
   dwRes =
-      GetSirenCodecInfo (1, decoder->sample_rate, &number_of_coefs,
+      GetSirenCodecInfo (decoder->flag, decoder->sample_rate, &number_of_coefs,
       &sample_rate_bits, &rate_control_bits, &rate_control_possibilities,
       &checksum_bits, &esf_adjustment, &scale_factor, &number_of_regions,
       &sample_rate_code, &bits_per_frame);

@@ -34,9 +34,12 @@
 
 typedef struct stSirenDecoder {
 	int sample_rate;
+	int flag;
+#ifdef __WAV_HEADER__
 	PCMWavHeader WavHeader;
-	float context[320];
-	float backup_frame[320];
+#endif
+	float context[640];
+	float backup_frame[640];
 	int dw1;
 	int dw2;
 	int dw3;
@@ -44,13 +47,17 @@ typedef struct stSirenDecoder {
 	int absolute_region_power_index[28];
 	float decoder_standard_deviation[28];
 	int power_categories[28];
-	int category_balance[28];
+	int category_balance[32];
 } * SirenDecoder;
 
 
 /* MUST be 16000 to be compatible with MSN Voice clips (I think) */
-extern SirenDecoder Siren7_NewDecoder(int sample_rate);
+extern SirenDecoder Siren7_NewDecoder(int sample_rate, int flag); /* flag = 1 for Siren7 and 2 for Siren14 */
 extern void Siren7_CloseDecoder(SirenDecoder decoder);
+extern void Siren7_ResetDecoder(SirenDecoder decoder);
+/* Input bytes / output samples */
+/* Siren7: 60 / 320 */
+/* Siren14: 120 / 640 */
 extern int Siren7_DecodeFrame(SirenDecoder decoder, unsigned char *DataIn, unsigned char *DataOut);
 
 #endif /* _SIREN_DECODER_H */

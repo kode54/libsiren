@@ -23,6 +23,12 @@
 #ifndef _SIREN7_H
 #define _SIREN7_H
 
+// Configuration:
+#define __BIG_ENDIAN_FRAMES__ // bitstream words are in big endian order already
+//#define __BIG_ENDIAN__ // sample data should be big endian
+//#define __WAV_HEADER__ // encoder and decoder maintain RIFF WAV header for caller
+#define __NO_CONTROL_OR_CHECK_FIELDS__ // sample rate control and checksum fields are not encoded or decoded
+
 #include "encoder.h"
 #include "decoder.h"
 

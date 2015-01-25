@@ -283,7 +283,7 @@ static const int code_table_category6[32] = {1, 2, 4, 2, 5, 29, 24, 101, 3, 31, 
 
 
 
-static const int const *bitcount_tables[7] = {
+static const int *bitcount_tables[7] = {
   bitcount_table_category0,
   bitcount_table_category1,
   bitcount_table_category2,
@@ -292,7 +292,7 @@ static const int const *bitcount_tables[7] = {
   bitcount_table_category5,
   bitcount_table_category6};
 
-static const int const *code_tables[7] = {
+static const int *code_tables[7] = {
   code_table_category0,
   code_table_category1,
   code_table_category2,
@@ -498,7 +498,7 @@ static const int decoder_tree6[62] = {
   39,   45,   43,   56,   58,   31,   55,   60,   61,   47,
   59,   63};
 
-static const int const *decoder_tables[7] = {
+static const int *decoder_tables[7] = {
   decoder_tree0,
   decoder_tree1,
   decoder_tree2,

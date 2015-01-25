@@ -25,11 +25,13 @@
 
 
 SirenEncoder
-Siren7_NewEncoder (int sample_rate)
+Siren7_NewEncoder (int sample_rate, int flag)
 {
   SirenEncoder encoder = (SirenEncoder) malloc (sizeof (struct stSirenEncoder));
   encoder->sample_rate = sample_rate;
+  encoder->flag = flag;
 
+#ifdef __WAV_HEADER__
   encoder->WavHeader.riff.RiffId = ME_TO_LE32 (RIFF_ID);
   encoder->WavHeader.riff.RiffSize = sizeof (SirenWavHeader) - 2 * sizeof (int);
   encoder->WavHeader.riff.RiffSize =
@@ -54,16 +56,17 @@ Siren7_NewEncoder (int sample_rate)
 
   encoder->WavHeader.DataId = ME_TO_LE32 (DATA_ID);
   encoder->WavHeader.DataSize = ME_TO_LE32 (0);
+#endif
 
   memset (encoder->context, 0, sizeof (encoder->context));
 
-  memset (encoder->absolute_region_power_index, 0, sizeof(int) * 28);
-  memset (encoder->power_categories, 0, sizeof(int) * 28);
-  memset (encoder->category_balance, 0, sizeof(int) * 28);
-  memset (encoder->drp_num_bits, 0, sizeof(int) * 30);
-  memset (encoder->drp_code_bits, 0, sizeof(int) * 30);
-  memset (encoder->region_mlt_bit_counts, 0, sizeof(int) * 30);
-  memset (encoder->region_mlt_bits, 0, sizeof(int) * 112);
+  memset (encoder->absolute_region_power_index, 0, sizeof(encoder->absolute_region_power_index));
+  memset (encoder->power_categories, 0, sizeof(encoder->power_categories));
+  memset (encoder->category_balance, 0, sizeof(encoder->category_balance));
+  memset (encoder->drp_num_bits, 0, sizeof(encoder->drp_num_bits));
+  memset (encoder->drp_code_bits, 0, sizeof(encoder->drp_code_bits));
+  memset (encoder->region_mlt_bit_counts, 0, sizeof(encoder->region_mlt_bit_counts));
+  memset (encoder->region_mlt_bits, 0, sizeof(encoder->region_mlt_bits));
 
   siren_init ();
   return encoder;
@@ -109,25 +112,30 @@ Siren7_EncodeFrame (SirenEncoder encoder, unsigned char *DataIn,
   int rate_control;
   int number_of_available_bits;
 
-  float coefs[320];
-  float In[320];
-  short BufferOut[20];
+  float coefs[640];
+  float In[640];
+  short BufferOut[60];
   float *context = encoder->context;
 
-  for (i = 0; i < 320; i++)
-    In[i] = (float) ((short) ME_FROM_LE16 (((short *) DataIn)[i]));
-
-  dwRes = siren_rmlt_encode_samples (In, context, 320, coefs);
-
-
+  dwRes =
+  GetSirenCodecInfo (encoder->flag, sample_rate, &number_of_coefs, &sample_rate_bits,
+                     &rate_control_bits, &rate_control_possibilities, &checksum_bits,
+                     &esf_adjustment, &scale_factor, &number_of_regions, &sample_rate_code,
+                     &bits_per_frame);
+    
   if (dwRes != 0)
     return dwRes;
+    
+#ifdef __NO_CONTROL_OR_CHECK_FIELDS__
+  sample_rate_bits = 0;
+  checksum_bits = 0;
+  sample_rate_code = 0;
+#endif
+    
+  for (i = 0; i < number_of_coefs; i++)
+    In[i] = (float) ((short) ME_FROM_LE16 (((short *) DataIn)[i]));
 
-  dwRes =
-      GetSirenCodecInfo (1, sample_rate, &number_of_coefs, &sample_rate_bits,
-      &rate_control_bits, &rate_control_possibilities, &checksum_bits,
-      &esf_adjustment, &scale_factor, &number_of_regions, &sample_rate_code,
-      &bits_per_frame);
+  dwRes = siren_rmlt_encode_samples (In, context, number_of_coefs, coefs);
 
   if (dwRes != 0)
     return dwRes;
@@ -232,27 +240,28 @@ Siren7_EncodeFrame (SirenEncoder encoder, unsigned char *DataIn,
     BufferOut[idx - 1] |= ((1 << checksum_bits) - 1) & checksum;
   }
 
-
-  for (i = 0; i < 20; i++)
-#ifdef __BIG_ENDIAN__
+  j = bits_per_frame / 16;
+  for (i = 0; i < j; i++)
+#ifdef __BIG_ENDIAN_FRAMES__
     ((short *) DataOut)[i] = BufferOut[i];
 #else
     ((short *) DataOut)[i] =
         ((BufferOut[i] << 8) & 0xFF00) | ((BufferOut[i] >> 8) & 0x00FF);
 #endif
 
+#ifdef __WAV_HEADER__
   encoder->WavHeader.Samples = ME_FROM_LE32 (encoder->WavHeader.Samples);
-  encoder->WavHeader.Samples += 320;
+  encoder->WavHeader.Samples += number_of_coefs;
   encoder->WavHeader.Samples = ME_TO_LE32 (encoder->WavHeader.Samples);
   encoder->WavHeader.DataSize = ME_FROM_LE32 (encoder->WavHeader.DataSize);
-  encoder->WavHeader.DataSize += 40;
+  encoder->WavHeader.DataSize += bits_per_Frame / 8;
   encoder->WavHeader.DataSize = ME_TO_LE32 (encoder->WavHeader.DataSize);
   encoder->WavHeader.riff.RiffSize =
       ME_FROM_LE32 (encoder->WavHeader.riff.RiffSize);
-  encoder->WavHeader.riff.RiffSize += 40;
+  encoder->WavHeader.riff.RiffSize += bits_per_Frame / 8;
   encoder->WavHeader.riff.RiffSize =
       ME_TO_LE32 (encoder->WavHeader.riff.RiffSize);
-
+#endif
 
   return 0;
 }

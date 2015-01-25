@@ -25,25 +25,25 @@
 #include "huffman.h"
 
 int
-next_bit (void)
+next_bit (bitstream *bs)
 {
-  if (bitstream_ptr == NULL)
+  if (bs == NULL || bs->bitstream_ptr == NULL)
     return -1;
 
-  if (bit_idx == 0) {
-    current_word = *bitstream_ptr++;
-    bit_idx = 16;
+  if (bs->bit_idx == 0) {
+    bs->current_word = *bs->bitstream_ptr++;
+    bs->bit_idx = 16;
   }
 
-  return (current_word >> --bit_idx) & 1;
+  return (bs->current_word >> --bs->bit_idx) & 1;
 }
 
 void
-set_bitstream (int *stream)
+set_bitstream (bitstream *bs, int *stream)
 {
-  bitstream_ptr = stream;
-  current_word = *bitstream_ptr;
-  bit_idx = 0;
+  bs->bitstream_ptr = stream;
+  bs->current_word = *bs->bitstream_ptr;
+  bs->bit_idx = 0;
 }
 
 
@@ -124,7 +124,7 @@ compute_region_powers (int number_of_regions, float *coefs, int *drp_num_bits,
 
 
 int
-decode_envelope (int number_of_regions, float *decoder_standard_deviation,
+decode_envelope (bitstream *bs, int number_of_regions, float *decoder_standard_deviation,
     int *absolute_region_power_index, int esf_adjustment)
 {
   int index;
@@ -133,7 +133,7 @@ decode_envelope (int number_of_regions, float *decoder_standard_deviation,
 
   index = 0;
   for (i = 0; i < 5; i++)
-    index = (index << 1) | next_bit ();
+    index = (index << 1) | next_bit (bs);
   envelope_bits = 5;
 
   absolute_region_power_index[0] = index - esf_adjustment;
@@ -143,7 +143,7 @@ decode_envelope (int number_of_regions, float *decoder_standard_deviation,
   for (i = 1; i < number_of_regions; i++) {
     index = 0;
     do {
-      index = differential_decoder_tree[i - 1][index][next_bit ()];
+      index = differential_decoder_tree[i - 1][index][next_bit (bs)];
       envelope_bits++;
     } while (index > 0);
 
@@ -295,14 +295,14 @@ get_dw (SirenDecoder decoder)
 
 
 int
-decode_vector (SirenDecoder decoder, int number_of_regions,
+decode_vector (SirenDecoder decoder, bitstream *bs, int number_of_regions,
     int number_of_available_bits, float *decoder_standard_deviation,
     int *power_categories, float *coefs, int scale_factor)
 {
   float *coefs_ptr;
   float decoded_value;
   float noise;
-  int *decoder_tree;
+  const int *decoder_tree;
 
   int region;
   int category;
@@ -328,7 +328,7 @@ decode_vector (SirenDecoder decoder, int number_of_regions,
             break;
           }
 
-          index = decoder_tree[index + next_bit ()];
+          index = decoder_tree[index + next_bit (bs)];
           number_of_available_bits--;
         } while ((index & 1) == 0);
 
@@ -341,7 +341,7 @@ decode_vector (SirenDecoder decoder, int number_of_regions,
             index >>= index_table[category];
 
             if (decoded_value != 0) {
-              if (next_bit () == 0)
+              if (next_bit (bs) == 0)
                 decoded_value *= -decoder_standard_deviation[region];
               else
                 decoded_value *= decoder_standard_deviation[region];
